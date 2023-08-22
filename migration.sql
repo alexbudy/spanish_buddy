@@ -1,3 +1,5 @@
+PRAGMA foreign_keys=ON; -- must be enabled on each connection
+
 CREATE TABLE IF NOT EXISTS nouns (
   id INTEGER PRIMARY KEY,
   gender TEXT NOT NULL,
@@ -18,5 +20,6 @@ CREATE TABLE IF NOT EXISTS ranking (
   en_to_es REAL DEFAULT 0,
   es_to_en REAL DEFAULT 0,
   FOREIGN KEY(profile_id) REFERENCES profiles(id),
-  FOREIGN KEY(noun_id) REFERENCES nouns(id)
-)
+  FOREIGN KEY(noun_id) REFERENCES nouns(id),
+  UNIQUE(profile_id, noun_id)
+);
