@@ -1,4 +1,19 @@
+from typing import List
 import inquirer
+import sqlite3
+
+database_path = "my_db.db"
+
+
+def get_profiles() -> List[str]:
+    conn = sqlite3.connect(database_path)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM profiles WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 3"
+    )
+    rows = cur.fetchall()
+
+    return [row[1] for row in rows]
 
 
 def main():
@@ -7,11 +22,15 @@ def main():
     )
     print("First, please choose or create a profile!")
 
+    profiles = get_profiles()
+    while len(profiles) < 3:
+        profiles.append("--EMPTY_PROFILE--")
+
     questions = [
         inquirer.List(
             "option",
             message="Select a profile (or exit)",
-            choices=["NEW PROFILE 1", "NEW PROFILE 2", "NEW PROFILE 3", "Exit :("],
+            choices=profiles + ["Exit :("],
         ),
     ]
 
