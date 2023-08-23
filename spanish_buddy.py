@@ -40,6 +40,7 @@ def main():
     if selected_option.startswith("Exit"):
         print("Exiting the program.")
     else:
+        print(answers)
         print(f"You selected: {selected_option}")
 
 

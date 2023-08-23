@@ -1,3 +1,4 @@
+import csv
 from multiprocessing import connection
 import sqlite3
 import argparse
@@ -15,15 +16,43 @@ def initialize_db(database_path: str):
         cursor.executescript(script)
     conn.commit()
 
+    load_nouns(cursor)
+    conn.commit()
+
+
+def load_nouns(cursor):
+    with open("words/nouns.csv", "r", encoding="UTF-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+
+        for row in reader:
+            cursor.execute(
+                "INSERT INTO nouns (spanish, english, gender) VALUES (:spanish, :english, :gender)",
+                (row["spanish"], row["english"], row["gender"]),
+            )
+
 
 def init_profile(database_path: str, profile_name: str):
     conn = sqlite3.connect(database_path)
 
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO profiles (name) VALUES (:profile_name)", (profile_name,)
+        "INSERT INTO profiles (name) VALUES (:profile_name);", (profile_name,)
     )
-    # TODO create rankings for words
+
+    profile_id: int = int(cursor.lastrowid)
+
+    cursor.execute("SELECT id FROM nouns;")
+    noun_ids = cursor.fetchall()
+
+    for noun_id in noun_ids:
+        cursor.execute(
+            "INSERT INTO ranking (profile_id, noun_id) VALUES (:profile_id, :noun_id);",
+            (
+                profile_id,
+                noun_id[0],
+            ),
+        )
+
     conn.commit()
 
 
