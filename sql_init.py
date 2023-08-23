@@ -4,6 +4,8 @@ import sqlite3
 import argparse
 import os
 
+from utils.utils import init_profile
+
 migration_file_path = "migration.sql"
 
 
@@ -31,31 +33,6 @@ def load_nouns(cursor):
             )
 
 
-def init_profile(database_path: str, profile_name: str):
-    conn = sqlite3.connect(database_path)
-
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO profiles (name) VALUES (:profile_name);", (profile_name,)
-    )
-
-    profile_id: int = int(cursor.lastrowid)
-
-    cursor.execute("SELECT id FROM nouns;")
-    noun_ids = cursor.fetchall()
-
-    for noun_id in noun_ids:
-        cursor.execute(
-            "INSERT INTO ranking (profile_id, noun_id) VALUES (:profile_id, :noun_id);",
-            (
-                profile_id,
-                noun_id[0],
-            ),
-        )
-
-    conn.commit()
-
-
 if __name__ == "__main__":
     db_path = "my_db.db"
 
@@ -73,4 +50,4 @@ if __name__ == "__main__":
 
     if args.drop_db and args.add_profile:
         profile = args.add_profile
-        init_profile(db_path, profile)
+        init_profile(profile)
