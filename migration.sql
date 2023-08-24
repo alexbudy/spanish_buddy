@@ -1,4 +1,4 @@
-PRAGMA foreign_keys=ON; -- must be enabled on each connection
+PRAGMA foreign_keys=ON; -- does not persist, must be enabled on each connection
 
 CREATE TABLE IF NOT EXISTS nouns (
   id INTEGER PRIMARY KEY,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   UNIQUE(name)
 );
 
-CREATE TABLE IF NOT EXISTS ranking (
+CREATE TABLE IF NOT EXISTS rankings (
   profile_id INTEGER NOT NULL,
   noun_id INTEGER NOT NULL,
   en_to_es REAL NOT NULL DEFAULT 0,

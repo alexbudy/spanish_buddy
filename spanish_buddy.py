@@ -2,19 +2,10 @@ from typing import List
 import inquirer
 import sqlite3
 
-from utils.utils import init_profile
+from utils.utils import get_profiles, get_words_for_profile, init_profile, Word
 
 database_path = "my_db.db"
 EMPTY_PROFILE = "--NEW_PROFILE--"
-
-
-def get_profiles(cur) -> List[str]:
-    cur.execute(
-        "SELECT * FROM profiles WHERE deleted_at IS NULL ORDER BY created_at ASC LIMIT 3"
-    )
-    rows = cur.fetchall()
-
-    return [row[1] for row in rows]
 
 
 def create_new_profile(cur, existing_profiles):
@@ -49,6 +40,10 @@ def create_new_profile(cur, existing_profiles):
     init_profile(new_profile)
 
 
+def training_type_selection(profile: str):
+    words: List[Words] = get_words_for_profile(profile)
+
+
 def main():
     print(
         "Welcome to Spanish Buddy, where you can practice your spanish to english word translations!"
@@ -58,7 +53,7 @@ def main():
     conn = sqlite3.connect(database_path)
     cur = conn.cursor()
 
-    existing_profiles = get_profiles(cur)
+    existing_profiles: List[str] = get_profiles()
 
     questions = [
         inquirer.List(
@@ -74,13 +69,14 @@ def main():
 
     selected_option = answers["option"]
     if selected_option.startswith("Exit"):
-        print("Exiting the program.")
+        print("Exiting the program, thanks for training!")
     elif EMPTY_PROFILE in selected_option:
         print("Empty profile selected... Creating new profile!")
         create_new_profile(cur, existing_profiles)
         conn.commit()
     else:
         print(f"Selected {selected_option}, loading profile data!")
+        training_type_selection(selected_option)
 
 
 if __name__ == "__main__":
