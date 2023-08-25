@@ -1,8 +1,15 @@
+import random
 from typing import List
 import inquirer
 import sqlite3
 
-from utils.utils import get_profiles, get_words_for_profile, init_profile, Word
+from utils.utils import (
+    get_all_words,
+    get_profiles,
+    get_words_for_question,
+    init_profile,
+    Word,
+)
 
 database_path = "my_db.db"
 EMPTY_PROFILE = "--NEW_PROFILE--"
@@ -40,8 +47,70 @@ def create_new_profile(cur, existing_profiles):
     init_profile(new_profile)
 
 
+def training_loop(locale: str, profile: str):
+    total_questions: int = 20
+    num_correct: int = 0
+    shown_words: List[int] = []
+    all_words: List[str] = get_all_words(locale[:2])
+
+    for i in range(1, total_questions + 1):
+        words: List[Word] = get_words_for_question(profile, locale=locale)
+        target_word: Word = random.choice(words)
+        if locale[:2] == "es":
+            target_word_str: str = target_word.english
+            correct_translation: str = (
+                {"m": "el", "f": "la"}[target_word.gender] + " " + target_word.spanish
+            )
+        else:
+            target_word_str: str = target_word.spanish
+            correct_translation: str = target_word.english
+
+        answers: List[str] = random.sample(all_words, 5)
+        if correct_translation in answers:
+            answers.remove(correct_translation)
+
+        answer_set: List[str] = answers[:4] + [correct_translation]
+        random.shuffle(answer_set)
+
+        locale_question = [
+            inquirer.List(
+                "selected_answer",
+                message=f'{i}/{total_questions+1} Please select the translation for "{target_word_str}"',
+                choices=answer_set,
+            ),
+        ]
+
+        answer = inquirer.prompt(locale_question)
+        selected_ans: str = answer["selected_answer"]
+        print(f"Selected {selected_ans}")
+        if selected_ans == correct_translation:
+            print("Correct!")
+        else:
+            print("Wrong!")
+
+
 def training_type_selection(profile: str):
-    words: List[Words] = get_words_for_profile(profile)
+    print("Please select training locale")
+    locale_question = [
+        inquirer.List(
+            "locale",
+            message="Select a training direction",
+            choices=[
+                "1. Provide spanish words, select english words",
+                "2. Provide english words, select spanish words",
+            ],
+        ),
+    ]
+
+    answer = inquirer.prompt(locale_question)
+    selected_option = answer["locale"]
+
+    if selected_option.startswith("1."):
+        locale: str = "es_to_en"
+    else:
+        locale: str = "en_to_es"
+
+    training_loop(locale, profile)
 
 
 def main():
