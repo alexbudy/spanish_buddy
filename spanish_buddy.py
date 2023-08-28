@@ -1,6 +1,7 @@
 import random
 from typing import List
 import inquirer
+from inquirer import errors
 import sqlite3
 
 from utils.utils import (
@@ -9,6 +10,7 @@ from utils.utils import (
     get_words_for_question,
     init_profile,
     Word,
+    update_ranking_for_word,
 )
 
 database_path = "my_db.db"
@@ -47,22 +49,53 @@ def create_new_profile(cur, existing_profiles):
     init_profile(new_profile)
 
 
+def validate_num_questions(_, num_q):
+    try:
+        num_q = int(num_q)
+        if num_q <= 0:
+            raise errors.ValidationError(
+                "", reason="Number of questions cannot be negative or 0."
+            )
+        if num_q > 20:
+            raise errors.ValidationError(
+                "",
+                reason="Let's just stick a reasonable number of questions for now (<= 20)",
+            )
+    except ValueError:
+        raise errors.ValidationError("", reason="Please enter a valid integer")
+
+    return True
+
+
 def training_loop(locale: str, profile: str):
-    total_questions: int = 20
-    num_correct: int = 0
-    shown_words: List[int] = []
-    all_words: List[str] = get_all_words(locale[:2])
+    answers = inquirer.prompt(
+        [
+            inquirer.Text(
+                "num_questions",
+                message="How many questions would you like to solve?",
+                validate=validate_num_questions,
+            )
+        ]
+    )
+
+    total_questions: int = int(answers["num_questions"])
+    questions_correct: int = 0
+    questioned_word_ids: List[int] = []
+    incorrect_words: List[Word] = []
+    all_words: List[str] = get_all_words(
+        locale[-2:]
+    )  # these are the words for the mult. choice answers
 
     for i in range(1, total_questions + 1):
-        words: List[Word] = get_words_for_question(profile, locale=locale)
+        words: List[Word] = get_words_for_question(
+            profile, locale=locale, exclude_word_ids=questioned_word_ids
+        )
         target_word: Word = random.choice(words)
-        if locale[:2] == "es":
+        if locale[:2] == "en":
             target_word_str: str = target_word.english
-            correct_translation: str = (
-                {"m": "el", "f": "la"}[target_word.gender] + " " + target_word.spanish
-            )
+            correct_translation: str = target_word.spanish_with_article
         else:
-            target_word_str: str = target_word.spanish
+            target_word_str: str = target_word.spanish_with_article
             correct_translation: str = target_word.english
 
         answers: List[str] = random.sample(all_words, 5)
@@ -75,7 +108,7 @@ def training_loop(locale: str, profile: str):
         locale_question = [
             inquirer.List(
                 "selected_answer",
-                message=f'{i}/{total_questions+1} Please select the translation for "{target_word_str}"',
+                message=f'{i}/{total_questions} Please select the translation for "{target_word_str}"',
                 choices=answer_set,
             ),
         ]
@@ -84,9 +117,31 @@ def training_loop(locale: str, profile: str):
         selected_ans: str = answer["selected_answer"]
         print(f"Selected {selected_ans}")
         if selected_ans == correct_translation:
-            print("Correct!")
+            print("Correct! Adjusting ranking...")
+            questions_correct += 1
         else:
-            print("Wrong!")
+            print("Wrong! Adjusting ranking...")
+            incorrect_words.append(target_word)
+        update_ranking_for_word(
+            target_word.id, locale, profile, selected_ans == correct_translation
+        )
+
+        questioned_word_ids.append(target_word.id)
+
+    print(
+        f"\nQuiz complete! You got {questions_correct}/{total_questions} = {round((questions_correct/total_questions) * 100)}% correct."
+    )
+    if questions_correct == total_questions:
+        print("\nLooks like you know all the words given!")
+    else:
+        print("\nHere are the words you got wrong for review...")
+        for word in incorrect_words:
+            if locale[:2] == "en":
+                print(f"    {word.english}: {word.spanish_with_article}\n")
+            else:
+                print(f"    {word.spanish_with_article}:{word.english}\n")
+
+    print("\nStoring personal results\n")
 
 
 def training_type_selection(profile: str):

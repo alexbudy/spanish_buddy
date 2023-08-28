@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import sqlite3
 from typing import List, Optional
 
@@ -11,6 +11,12 @@ class Word:
     spanish: str
     english: str
     gender: str
+    spanish_with_article: str = field(init=False)
+
+    def __post_init__(self):
+        self.spanish_with_article = (
+            {"m": "el", "f": "la"}[self.gender] + " " + self.spanish
+        )
 
 
 @dataclass
@@ -65,12 +71,28 @@ def get_all_words(lang: str) -> List[str]:
     rows = cur.fetchall()
     words: List[str] = []
     for row in rows:
+        word: Word = Word(*row)
         if lang == "en":
-            words.append(row[2])
+            words.append(word.english)
         else:
-            words.append({"m": "el", "f": "la"}[row[3]] + " " + row[1])
+            words.append(word.spanish_with_article)
 
     return words
+
+
+def update_ranking_for_word(word_id: int, locale: str, profile: str, got_correct: bool):
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    cur.execute("SELECT id FROM profiles WHERE name = :profile", (profile,))
+    p_id: int = cur.fetchone()[0]
+
+    ranking_adjustment: float = [-0.5, 0.5][got_correct]
+    qry: str = f"""UPDATE rankings SET {locale} = {locale} + ? WHERE profile_id=? AND noun_id = ?"""
+
+    cur.execute(qry, (ranking_adjustment, p_id, word_id))
+    conn.commit()
+    conn.close()
 
 
 def get_words_for_question(
@@ -92,10 +114,10 @@ def get_words_for_question(
     WHERE p.name = '{profile}' """
 
     if exclude_word_ids:
-        excluded_ids_str: ",".join(map(str, [1, 2, 3]))
+        excluded_ids_str: str = ",".join(map(str, exclude_word_ids))
         qry += f" AND n.id NOT IN ({excluded_ids_str}) "
 
-    qry += f" ORDER BY {locale} ASC LIMIT {num_words};"
+    qry += f" ORDER BY {locale} ASC, RANDOM() LIMIT {num_words};"
 
     cur.execute(qry)
     rows = cur.fetchall()
