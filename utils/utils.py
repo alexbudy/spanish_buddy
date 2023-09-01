@@ -11,12 +11,6 @@ class Word:
     spanish: str
     english: str
     gender: str
-    spanish_with_article: str = field(init=False)
-
-    def __post_init__(self):
-        self.spanish_with_article = (
-            {"m": "el", "f": "la"}[self.gender] + " " + self.spanish
-        )
 
 
 @dataclass
@@ -75,19 +69,27 @@ def get_all_words(lang: str) -> List[str]:
         if lang == "en":
             words.append(word.english)
         else:
-            words.append(word.spanish_with_article)
+            words.append(word.spanish)
 
     return words
 
 
-def update_ranking_for_word(word_id: int, locale: str, profile: str, got_correct: bool):
+def update_ranking_for_word(
+    word_id: int,
+    locale: str,
+    profile: str,
+    got_correct: bool,
+    ranking_adjustment: float,
+):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
     cur.execute("SELECT id FROM profiles WHERE name = :profile", (profile,))
     p_id: int = cur.fetchone()[0]
 
-    ranking_adjustment: float = [-0.5, 0.5][got_correct]
+    if not got_correct:
+        ranking_adjustment: float = ranking_adjustment * -1
+
     qry: str = f"""UPDATE rankings SET {locale} = {locale} + ? WHERE profile_id=? AND noun_id = ?"""
 
     cur.execute(qry, (ranking_adjustment, p_id, word_id))

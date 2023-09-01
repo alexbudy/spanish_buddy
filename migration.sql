@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS nouns (
   id INTEGER PRIMARY KEY,
   spanish TEXT NOT NULL,
   english TEXT NOT NULL,
-  gender TEXT NOT NULL,
-  UNIQUE(spanish)
+  gender TEXT,
+  UNIQUE(english)
 );
 
 CREATE TABLE IF NOT EXISTS profiles (

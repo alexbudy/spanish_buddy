@@ -17,7 +17,7 @@ database_path = "my_db.db"
 EMPTY_PROFILE = "--NEW_PROFILE--"
 
 
-def create_new_profile(cur, existing_profiles):
+def create_new_profile(cur, existing_profiles) -> str:
     existing_profiles_lowered = [e_p.lower() for e_p in existing_profiles]
     answer = inquirer.prompt(
         [
@@ -48,6 +48,8 @@ def create_new_profile(cur, existing_profiles):
     print(f"Creating profile {new_profile}")
     init_profile(new_profile)
 
+    return new_profile
+
 
 def validate_num_questions(_, num_q):
     try:
@@ -67,18 +69,47 @@ def validate_num_questions(_, num_q):
     return True
 
 
+def validate_num_options(_, num_o):
+    try:
+        num_o = int(num_o)
+        if num_o < 2:
+            raise errors.ValidationError("", reason="Number of options must be >= 2.")
+        if num_o > 6:
+            raise errors.ValidationError(
+                "",
+                reason="Number of options cannot exceed 6.",
+            )
+    except ValueError:
+        raise errors.ValidationError("", reason="Please enter a valid integer")
+
+    return True
+
+
 def training_loop(locale: str, profile: str):
     answers = inquirer.prompt(
         [
             inquirer.Text(
                 "num_questions",
-                message="How many questions would you like to solve?",
+                message="How many questions would you like to solve? (1-20)",
                 validate=validate_num_questions,
+                default=10,
             )
         ]
     )
 
     total_questions: int = int(answers["num_questions"])
+
+    answers = inquirer.prompt(
+        [
+            inquirer.Text(
+                "num_options",
+                message="How many options would you like to see per word? (2-6)",
+                validate=validate_num_options,
+                default=4,
+            )
+        ]
+    )
+    num_options: int = int(answers["num_options"])
     questions_correct: int = 0
     questioned_word_ids: List[int] = []
     incorrect_words: List[Word] = []
@@ -93,16 +124,16 @@ def training_loop(locale: str, profile: str):
         target_word: Word = random.choice(words)
         if locale[:2] == "en":
             target_word_str: str = target_word.english
-            correct_translation: str = target_word.spanish_with_article
+            correct_translation: str = target_word.spanish
         else:
-            target_word_str: str = target_word.spanish_with_article
+            target_word_str: str = target_word.spanish
             correct_translation: str = target_word.english
 
-        answers: List[str] = random.sample(all_words, 5)
+        answers: List[str] = random.sample(all_words, num_options)
         if correct_translation in answers:
             answers.remove(correct_translation)
 
-        answer_set: List[str] = answers[:4] + [correct_translation]
+        answer_set: List[str] = answers[: num_options - 1] + [correct_translation]
         random.shuffle(answer_set)
 
         locale_question = [
@@ -110,6 +141,7 @@ def training_loop(locale: str, profile: str):
                 "selected_answer",
                 message=f'{i}/{total_questions} Please select the translation for "{target_word_str}"',
                 choices=answer_set,
+                carousel=True,
             ),
         ]
 
@@ -123,7 +155,11 @@ def training_loop(locale: str, profile: str):
             print("Wrong! Adjusting ranking...")
             incorrect_words.append(target_word)
         update_ranking_for_word(
-            target_word.id, locale, profile, selected_ans == correct_translation
+            target_word.id,
+            locale,
+            profile,
+            selected_ans == correct_translation,
+            ranking_adjustment=0.15 * num_options,
         )
 
         questioned_word_ids.append(target_word.id)
@@ -137,15 +173,27 @@ def training_loop(locale: str, profile: str):
         print("\nHere are the words you got wrong for review...")
         for word in incorrect_words:
             if locale[:2] == "en":
-                print(f"    {word.english}: {word.spanish_with_article}\n")
+                print(f"    {word.english}: {word.spanish}\n")
             else:
-                print(f"    {word.spanish_with_article}:{word.english}\n")
+                print(f"    {word.spanish}:{word.english}\n")
 
     print("\nStoring personal results\n")
 
+    locale_question = [
+        inquirer.List(
+            "go_again",
+            message=f"Would you like to go again?",
+            choices=["Yes", "No"],
+            carousel=True,
+        ),
+    ]
+    answer = inquirer.prompt(locale_question)
+
+    if answer["go_again"] == "Yes":
+        training_loop(locale, profile)
+
 
 def training_type_selection(profile: str):
-    print("Please select training locale")
     locale_question = [
         inquirer.List(
             "locale",
@@ -186,6 +234,7 @@ def main():
             choices=existing_profiles
             + [EMPTY_PROFILE for _ in range(3 - len(existing_profiles))]
             + ["Exit :("],
+            carousel=True,
         ),
     ]
 
@@ -196,11 +245,11 @@ def main():
         print("Exiting the program, thanks for training!")
     elif EMPTY_PROFILE in selected_option:
         print("Empty profile selected... Creating new profile!")
-        create_new_profile(cur, existing_profiles)
-        conn.commit()
+        selected_option = create_new_profile(cur, existing_profiles)
     else:
         print(f"Selected {selected_option}, loading profile data!")
-        training_type_selection(selected_option)
+
+    training_type_selection(selected_option)
 
 
 if __name__ == "__main__":
