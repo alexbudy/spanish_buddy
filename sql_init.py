@@ -48,6 +48,6 @@ if __name__ == "__main__":
 
     initialize_db(db_path)
 
-    if args.drop_db and args.add_profile:
+    if args.add_profile:
         profile = args.add_profile
         init_profile(profile)
