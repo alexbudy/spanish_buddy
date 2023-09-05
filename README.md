@@ -29,10 +29,15 @@ Now, create and activate the virtual environment:
 
 ```
 python -m venv myenv
+
+# MacOS/Linux
 source ./myenv/Scripts/activate
+
+# Windows
+. ./myenv/Scripts/activate
 ```
 
-(To deactivate the virtual environment, run `deactivate`)
+To deactivate the virtual environment on either OS and remain in the shell, run `deactivate`
 
 Now, install the requirements needed to run the project, using
 
