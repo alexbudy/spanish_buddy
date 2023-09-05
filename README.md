@@ -4,13 +4,15 @@ Welcome to Spanish Buddy, a customizable Python-based CLI for helping users stud
 
 ## Motivation
 
-Create a Command Line (CLI) utility that will allow me to train commonly used Spanish vocabulary, to be more proficient when visiting Spanish-speaking countries or reading Spanish.
+Several factors lead me to create this utility:
 
-- Preference showing words that I historically got wrong using a dynamic ranking system, and allow for training in both Spanish -> English as well as English -> Spanish directions.
+- Create a Command Line (CLI) utility that will allow me to train commonly used Spanish vocabulary, with multiple choice selections, to be more proficient when visiting Spanish-speaking countries or reading Spanish.
 
-As a bonus, practice coding in my spare time, including DB design.
+- Introduce a ranking system I can iterate on, for words that I would get wrong (and so would get surfaced more often than words I was familiar with). Also, allow for training in both Spanish -> English as well as English -> Spanish directions.
 
-## Prerequisites
+- Practice coding in my spare time, including maintaining a relational database schema.
+
+## Prerequisites for use
 
 Any Python version >= 3.9.0 on your machine should suffice. Versions below may work, but are untested.
 
@@ -49,7 +51,7 @@ python sql_init.py
 Two optional flags are accepted:
 
 - `-ddb, --drop-db` - Drops (deletes) the existing DB file (WARNING - will lose all progress if deleting!)
-- ` -ap NEW_PROFILE, --add_profile NEW_PROFILE` - Creates a new profile for use, with the name `NEW_PROFILE`. This step can also be done during usage.
+- ` -ap NEW_PROFILE, --add_profile NEW_PROFILE` - Creates a new profile for use, with the name `NEW_PROFILE`. This step can also be done during CLI usage.
 
 ## Usage
 
@@ -83,6 +85,7 @@ Many possible future additions can be included, such as
 - addition of verbs/adjectives, and simple sentences
 - storing of quiz results
 - profile management
+- UI improvements
 
 Any contributions, ideas, or suggestions are welcome
 
@@ -97,4 +100,4 @@ This simple utility was originally ideated as a quick and dirty proof of concept
 ## Acknowledgements
 
 The ~2000 word list was pulled from http://frequencylists.blogspot.com/2015/12/the-2000-most-frequently-used-spanish.html
-Thanks Neri!
+Thank you sir!
